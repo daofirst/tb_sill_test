@@ -18,9 +18,9 @@ class IndexController extends Controller
     {
 
         $limit = LimitFlow::getInstance();
-        $limit->setQps('notify_tb', 100);
+        $limit->setQps('notify_tb', 200);
 
-        for ($i = 0; $i < 3000; $i++) {
+        for ($i = 0; $i < 30000; $i++) {
             $this->dispatch(new NotifyTbOneJob());
         }
 
