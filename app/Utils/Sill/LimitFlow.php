@@ -69,10 +69,10 @@ class LimitFlow
     public function throttle($name, callable $callback, callable $failure = null)
     {
 
-//        $lock = \Cache::lock('lock:qps_throttle:' . $name, 1);
-//
-//        try {
-//            $lock->block(1);
+       $lock = \Cache::lock('lock:qps_throttle:' . $name, 2);
+
+       try {
+           $lock->block(3);
 
             $qps = $this->redis->command('get', ['qps:' . $name]);
             if ($qps === false) {
@@ -99,14 +99,14 @@ class LimitFlow
             return $callback();
 
 
-//        } catch (LockTimeoutException $e) {
-//            if ($failure) {
-//                return $failure($e);
-//            }
-//            throw $e;
-//        } finally {
-//            optional($lock)->release();
-//        }
+       } catch (LockTimeoutException $e) {
+           if ($failure) {
+               return $failure($e);
+           }
+           throw $e;
+       } finally {
+           optional($lock)->release();
+       }
     }
 
 

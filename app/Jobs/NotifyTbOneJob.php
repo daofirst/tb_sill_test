@@ -39,12 +39,11 @@ class NotifyTbOneJob implements ShouldQueue
         $limitFlow->throttle('notify_tb', function () {
 
             $client = new Client([
-                // Base URI is used with relative requests
                 'base_uri' => 'http://127.0.0.1:8080',
             ]);
 
             try {
-                $client->request('GET', '/?id=' . random_int(100000, 9999999));
+                $client->request('GET', '/');
             } catch (\Exception $e) {
                 \Log::info("失败了: " . $e->getMessage());
                 $this->release();
