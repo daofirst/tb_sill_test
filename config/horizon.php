@@ -144,7 +144,7 @@ return [
         'production' => [
             'supervisor-1' => [
                 'connection' => 'redis',
-                'queue' => ['default'],
+                'queue' => ['high', 'middle', 'low', 'default'],
                 'balance' => 'simple',
                 'processes' => 10,
                 'tries' => 1,
@@ -154,7 +154,7 @@ return [
         'local' => [
             'supervisor-1' => [
                 'connection' => 'redis',
-                'queue' => ['default'],
+                'queue' => ['high', 'middle', 'low', 'default'],
                 'balance' => 'simple',
                 'processes' => 20,
                 'tries' => 1,

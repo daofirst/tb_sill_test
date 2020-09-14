@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Utils\Sill\LimitFlow;
+use App\Utils\LimitFlow;
 use GuzzleHttp\Client;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -14,7 +14,10 @@ class NotifyTbOneJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $tries = 5;
+    /**
+     * @var int $tries
+     */
+    public $tries = 1;
 
     /**
      * Create a new job instance.
@@ -44,6 +47,12 @@ class NotifyTbOneJob implements ShouldQueue
 
             try {
                 $client->request('GET', '/');
+
+                $job = new NotifyTbTwoJob();
+                $job = $job->onQueue('middle');
+                $this->chain([$job]);
+                $this->dispatchNextJobInChain();
+
             } catch (\Exception $e) {
                 \Log::info("失败了: " . $e->getMessage());
                 $this->release();

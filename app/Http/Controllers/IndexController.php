@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 
 
 use App\Jobs\NotifyTbOneJob;
-use App\Utils\Sill\LimitFlow;
+use App\Utils\LimitFlow;
 
 class IndexController extends Controller
 {
@@ -18,10 +18,10 @@ class IndexController extends Controller
     {
 
         $limit = LimitFlow::getInstance();
-        $limit->setQps('notify_tb', 200);
+        $limit->setQps('notify_tb', 100);
 
-        for ($i = 0; $i < 30000; $i++) {
-            $this->dispatch(new NotifyTbOneJob());
+        for ($i = 0; $i < 1000; $i++) {
+            $this->dispatch((new NotifyTbOneJob())->onQueue('high'));
         }
 
         return "success";

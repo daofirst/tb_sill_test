@@ -1,7 +1,7 @@
 <?php
 
 
-namespace App\Utils\Sill;
+namespace App\Utils;
 
 
 use App\Exceptions\LimitFlowException;
@@ -23,7 +23,7 @@ class LimitFlow
     /**
      * @var int
      */
-    private $defaultQps = 100;
+    private $defaultQps = 50;
 
     /**
      * LimitFlow constructor.
@@ -68,46 +68,60 @@ class LimitFlow
      */
     public function throttle($name, callable $callback, callable $failure = null)
     {
+        $qps = $this->redis->command('get', ['qps:' . $name]);
+        if ($qps === false) {
+            $qps = $this->defaultQps;
+        }
+        
+        $qps = (int)$qps;
 
-    //    $lock = \Cache::lock('lock:qps_throttle:' . $name, 2);
+        $limitKey = 'qps_throttle:' . $name;
 
-    //    try {
-    //        $lock->block(3);
+        $currentTime = microtime(true);
+        $beforeTime = $currentTime - 1;
+        
+        $member = \Str::uuid()->toString();
 
-            $qps = $this->redis->command('get', ['qps:' . $name]);
-            if ($qps === false) {
-                $qps = $this->defaultQps;
+        $res = $this->redis->eval($this->zaddLua(), 6, $limitKey, 'min', 'max', 'qps', 'score', 'member', '', $beforeTime, $currentTime, $qps, $currentTime, $member);
+
+        if (!$res) {
+            $e = new LimitFlowException('Limit Exceeded');
+            if ($failure) {
+                return $failure($e);
             }
-            $qps = (int)$qps;
+            throw $e;
+        }
 
-            $limitKey = 'qps_throttle:' . $name;
-
-            $currentTime = microtime(true);
-            $beforeTime = $currentTime - 1;
-            $count = $this->redis->command('ZCOUNT', [$limitKey, $beforeTime, $currentTime]);
-
-            if ($count >= $qps) {
-                $e = new LimitFlowException('Limit Exceeded');
-                if ($failure) {
-                    return $failure($e);
-                }
-                throw $e;
-            }
-
-            $this->redis->command('ZADD', [$limitKey, $currentTime, \Str::uuid()->toString()]);
-
-            return $callback();
-
-    //    } catch (LockTimeoutException $e) {
-    //        if ($failure) {
-    //            return $failure($e);
-    //        }
-    //        throw $e;
-    //    } finally {
-    //        optional($lock)->release();
-    //    }
+        return $callback();
     }
 
+    /**
+     * 获取Lua脚本以原子方式添加成员.
+     * KEYS[1] 有序集合的名称
+     * ARGV[1] 空字符
+     * KEYS[2] min
+     * ARGV[2] 最小分数值
+     * KEYS[3] max
+     * ARGV[3] 最大分数值
+     * KEYS[4] qps
+     * ARGV[4] qps值
+     * KEYS[5] score
+     * ARGV[5] 要添加的成员的分数
+     * KEYS[6] member
+     * ARGV[6] 要添加的成员
+     * @return string
+     */
+    public static function zaddLua()
+    {
+
+        return <<<'LUA'
+if redis.call("zcount",KEYS[1], ARGV[2], ARGV[3]) < tonumber(ARGV[4]) then
+    return redis.call("zadd",KEYS[1], ARGV[5], ARGV[6])
+else
+    return 0
+end
+LUA;
+    }
 
     /**
      * _clone

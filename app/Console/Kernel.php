@@ -13,7 +13,9 @@ class Kernel extends ConsoleKernel
      * @var array
      */
     protected $commands = [
-        //
+        \App\Console\Commands\NotifyTbQps::class,
+        \App\Console\Commands\CleanQpsThrottleHistory::class,
+        \App\Console\Commands\RetryFailedQueue::class,
     ];
 
     /**
@@ -24,8 +26,9 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('inspire')
-        //          ->hourly();
+        // 每天0点运行清理qps限制数据
+        $schedule->command('qps-throttle:clear-history')
+                 ->daily();
     }
 
     /**
